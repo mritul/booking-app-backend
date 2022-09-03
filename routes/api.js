@@ -1,7 +1,9 @@
 const express = require("express");
+const Booking = require("../models/Booking");
 const router = express.Router();
 const City = require("../models/City");
 const Experience = require("../models/Experience");
+const User = require("../models/User");
 const Variant = require("../models/Variant");
 
 // For testing purposes to post new data to DB
@@ -118,6 +120,28 @@ router.get("/variant/:variantId", async (req, res) => {
     const variantId = req.params.variantId;
     const result = await Variant.find({ _id: variantId });
     res.send(result);
+  } catch (err) {
+    throw err;
+  }
+});
+
+// GET - /api/bookings/:emailId
+router.get("/bookings/:emailId", async (req, res) => {
+  try {
+    const email = req.params.emailId;
+    const userResponse = await User.findOne({ email: email });
+    console.log(userResponse);
+    const bookingIdsArray = userResponse.bookings;
+    if (!bookingIdsArray) {
+      res.json({ bookings: null, message: "This email has no bookings yet" });
+    }
+    // Using the booking ids in the bookingIdsArray, running a forEach and creating a booking details array
+    const bookingsArray = [];
+    bookingIdsArray.forEach(async (id) => {
+      const bookingResponse = await Booking.findOne({ _id: id });
+      // Using the experience and variant Ids find their names and push to array finally
+    });
+    console.log(bookingsArray);
   } catch (err) {
     throw err;
   }
