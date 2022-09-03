@@ -130,18 +130,107 @@ router.get("/bookings/:emailId", async (req, res) => {
   try {
     const email = req.params.emailId;
     const userResponse = await User.findOne({ email: email });
-    console.log(userResponse);
-    const bookingIdsArray = userResponse.bookings;
-    if (!bookingIdsArray) {
+    if (userResponse == null) {
       res.json({ bookings: null, message: "This email has no bookings yet" });
+    } else {
+      const bookingIdsArray = userResponse.bookings;
+
+      // Using the booking ids in the bookingIdsArray, running a forEach and creating a booking details array
+      const bookingsArray = [];
+
+      const fetchBookingInfo = async () => {
+        return new Promise(async (resolve, reject) => {
+          try {
+            const bookings = await Booking.find({
+              _id: { $in: bookingIdsArray },
+            });
+            console.log(bookings);
+            bookings.forEach(async (booking, idx) => {
+              const date = booking.details.date;
+              const time = booking.details.time;
+              const pax = booking.pax;
+              const amount = booking.amount;
+              const id = booking.id;
+              const experienceId = booking.details.experienceId;
+              const variantId = booking.details.variantId;
+              const experienceResponse = await Experience.findOne({
+                _id: experienceId,
+              });
+              const cityId = experienceResponse.cityId;
+              const variantResponse = await Variant.findOne({ _id: variantId });
+              const experience = experienceResponse.displayName;
+              const variant = variantResponse.displayName;
+              const cityResponse = await City.findOne({ _id: cityId });
+              const city = cityResponse.displayName;
+
+              bookingsArray.push({
+                id: id,
+                experience: experience,
+                variant: variant,
+                pax: pax,
+                date: date,
+                time: time,
+                amount: amount,
+                city: city,
+              });
+
+              // Checking if all booking data has been pushed and resolving the promise if yes
+              if (idx == bookingIdsArray.length - 1) {
+                resolve();
+              }
+            });
+          } catch (error) {
+            reject();
+          }
+        });
+      };
+
+      // const fetchBookingInfo = async () => {
+      //   return new Promise(async (resolve, reject) => {
+      //     try {
+      //       const bookings = await Booking.find({
+      //         _id: { $in: bookingIdsArray },
+      //       });
+      //       const experiences = await Experience.find({
+      //         _id: { $in: bookings.map((x) => x.details.experienceId) },
+      //       });
+      //       const variants = await Variant.find({
+      //         _id: { $in: bookings.map((x) => x.details.variantId) },
+      //       });
+      //       const cities = await City.find({
+      //         _id: { $in: experiences.map((x) => x.cityId) },
+      //       });
+
+      //       for (let i = 0; i < bookingIdsArray.length; i++) {
+      //         bookingsArray.push({
+      //           id: bookingIdsArray[i],
+      //           experience: experiences[i].displayName,
+      //           variant: variants[i].displayName,
+      //           pax: bookings[i].details.pax,
+      //           date: bookings[i].details.date,
+      //           time: bookings[i].details.time,
+      //           amount: bookings[i].amount,
+      //           city: cities[i].displayName,
+      //         });
+
+      //         // To know when the fetching operation has completed
+      //         if (i == bookingIdsArray.length - 1) {
+      //           resolve();
+      //         }
+      //       }
+      //     } catch (error) {
+      //       reject(error);
+      //     }
+      //   });
+      // };
+
+      await fetchBookingInfo();
+
+      res.json({
+        bookings: bookingsArray,
+        message: "Bookings successfully fetched",
+      });
     }
-    // Using the booking ids in the bookingIdsArray, running a forEach and creating a booking details array
-    const bookingsArray = [];
-    bookingIdsArray.forEach(async (id) => {
-      const bookingResponse = await Booking.findOne({ _id: id });
-      // Using the experience and variant Ids find their names and push to array finally
-    });
-    console.log(bookingsArray);
   } catch (err) {
     throw err;
   }
